@@ -1,0 +1,180 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Hello HomeController!{% endblock %}
+
+{% block head %}
+
+{% endblock %}
+
+{% block body %}
+
+<div class="row">
+    <div class="col">
+
+            <div class="mb-3">
+                <label for="cardnumber" class="form-label">Card Number</label>
+                <input type="tel" class="form-control" id="card_number" name="card" aria-describedby="cardhelp">
+                <div id="cardhelp" class="form-text">We'll never share your email with anyone else.</div>
+            </div>
+            <div class="mb-3">
+                <label for="cardexp" class="form-label">Exp Date</label>
+                <input type="tel" class="form-control" id="card_exp"  name="card">
+            </div>
+            <div class="mb-3">
+                <label for="cardcvv" class="form-label">cvv</label>
+                <input type="tel" class="form-control" id="card_cvv" name="card">
+            </div>
+
+                <input type="hidden" id="amount" name="transaction">
+                <input type="hidden" id="order" name="transaction">
+
+                <button type="button" id="iniciar" class="btn btn-primary">Iniciar</button>
+
+        {#        {{ form(form) }}#}
+    </div>
+
+    <iframe name="redsys_iframe" name="redsys_iframe_acs" src=""
+            id="redsys_iframe" target="_parent" referrerpolicy="origin"
+            sandbox="allow-same-origin allow-scripts allow-top-navigation allow-forms"
+            height="95%" width="100%" style="border: none; display: none;"></iframe>
+
+        <div class="col">
+
+                <H1>3DSMethod Init</H1>
+                <form id="3dsmethod-form" action="" method="POST">
+{#                    <input type="hidden" name="threeDSMethodData" value="">#}
+                </form>
+
+            <iframe id="3dsmethod-iframe" name="3dsmethod" style="display:none;"></iframe>
+
+        </div>
+{#        <script>#}
+
+{#            window.addEventListener('load', function (){#}
+{#                //enviará el formulario al cargarse la página a la entidad bancaria#}
+{#                //let formulario = document.getElementById('formTreeDs');#}
+{#                ejecutar3DSMethod();#}
+{#                //formulario.submit();#}
+{#            });#}
+{#            function ejecutar3DSMethod() {#}
+{#                var form = document.getElementById("3dsmethod-form");#}
+{#                var iframe = document.getElementById("3dsmethod-iframe");#}
+
+{#                console.log('ejecuto form');#}
+{#                form.target = "3dsmethod";#}
+{#                form.submit();#}
+{#                iframe.style.display='block'#}
+{#            }#}
+{#        </script>#}
+
+
+    {% if Challenge is defined %}
+
+        <iframe name="redsys_iframe_acs" name="redsys_iframe_acs" src=""
+                id="redsys_iframe_acs" target="_parent" referrerpolicy="origin"
+                sandbox="allow-same-origin allow-scripts allow-top-navigation allow-forms"
+                height="95%" width="100%" style="border: none; display: none;"></iframe>
+
+        <form name="redsysAcsForm" id="redsysAcsForm"
+              action="{{ urlACS }}" method="POST"
+              target="redsys_iframe_acs" style="border: none;">
+            <table name="dataTable" border="0" cellpadding="0">
+                <input type="hidden" name="creq"
+                       value="{{ creq }}">
+                <br>
+                <p style="font-family: Arial; font-size: 16; font-weight: bold; color: black; align: center;">
+                    Conectando con el emisor...
+                </p>
+            </table>
+        </form>
+
+        <script>
+            window.onload = function () {
+                document.getElementById("redsys_iframe_acs").onload = function() {
+                    document.getElementById("redsysAcsForm").style.display="none";
+                    document.getElementById("redsys_iframe_acs").style.display="inline";
+                }
+                document.redsysAcsForm.submit();
+            }
+        </script>';
+
+    {% endif %}
+
+</div>
+
+{#    <div class="col">#}
+{#        <div class="cardinfo-card-number">#}
+{#            <label class="cardinfo-label" for="card-number">Numero de tarjeta</label>#}
+{#            <div class='input-wrapper' id="card-number"></div>#}
+{#        </div>#}
+{#    </div>#}
+{#    <div class="col">#}
+{#        <div class="cardinfo-exp-date">#}
+{#            <label class="cardinfo-label" for="card-expiration">Caducidad</label>#}
+{#            <div class='input-wrapper' id="card-expiration"></div>#}
+{#        </div>#}
+{#    </div>#}
+{#    <div class="col">#}
+{#        <div class="cardinfo-cvv">#}
+{#            <label class="cardinfo-label" for="cvv">CVV</label>#}
+{#            <div class='input-wrapper' id="cvv"></div>#}
+{#        </div>#}
+{#    </div>#}
+
+{#    <input type="hidden" id="token"></input>#}
+{#    <input type="hidden" id="errorCode"></input>#}
+{#</div>#}
+{#<div class="row">#}
+{#    <div class="col">#}
+{#        <a class="btn btn-primary" href="#" role="button">Iniciar Peticion (Pagar)</a>#}
+{#    </div>#}
+{#</div>#}
+
+
+{#    <script>#}
+{#        let token; //se almacenará el token desde el SIS TPV VIRTUAL con el token de la operación#}
+{#        let errorCode //error en caso de que la tarjeta tena algún problema#}
+
+{#        console.log('Inicio script test Redsys');#}
+
+{#        function validation()#}
+{#        {#}
+{#            //tiene que retornar true para seguir está funcion es para hacer validaciones propias#}
+{#            return true;#}
+{#        }#}
+
+{#        function pedido() {#}
+
+{#            //genero un numero en base a date unix único#}
+{#            //este valor se reutilizará en los siguientes pasos#}
+{#            //para no tener que utilizar nuevamente los valores de la tarjeta#}
+
+{#            order = Math.floor(Date.now() / 1000);#}
+
+{#            console.log( {'order': order} );#}
+
+{#            //como es tan estricto con el tema de los string hago la conversión#}
+{#            return order.toString();#}
+{#        }#}
+
+{#        window.addEventListener("message", function receiveMessage(event) {#}
+
+{#            //storeIdOper( event, "token", "errorCode", validation );#}
+
+{#            token       = document.getElementById('token').value;#}
+{#            errorCode   = document.getElementById('errorCode').value;#}
+
+{#            console.log(token, errorCode);#}
+{#        });#}
+
+{#        getCardInput('card-number', '', '', '');#}
+{#        getExpirationInput('card-expiration', '', '');#}
+{#        getCVVInput('cvv', '', '');#}
+{#        //getPayButton('boton','', 'PAGO', '999008881', '1', pedido());#}
+
+{#    </script>#}
+
+{% endblock %}
+{% block javascripts %}
+    {{ encore_entry_script_tags('base') }}
+{% endblock %}
