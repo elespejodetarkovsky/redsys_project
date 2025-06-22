@@ -13,8 +13,30 @@ let amount                  = document.getElementById("amount");
 let order                           = document.getElementById("order");
 let iniciarButton           = document.getElementById("iniciar");
 let threeDsmethodForm       = document.getElementById("3dsmethod-form");
+let challengeForm           = document.getElementById("challenge-form");
 let threeDsmethodIframe     = document.getElementById("3dsmethod-iframe");
+let stateTransaction        = document.getElementById("state_trans");
+let challengeIframe         = document.getElementById("redsys_iframe_challenge");
 
+threeDsmethodIframe.addEventListener("load", function(e) {
+
+    if ( !(threeDsmethodIframe.contentDocument === null) )
+    {
+        const challenge = JSON.parse( threeDsmethodIframe.contentDocument.body.innerText );
+
+        if ( challenge.ChallengeRequest )
+        {
+            stateTransaction.value = "se necesita realizar challenge"
+
+            executeChallenge( challenge );
+
+            //se carga form y ejecuta en el iframe
+        }
+
+        //console.log(threeDsmethodIframe, JSON.parse( threeDsmethodIframe.contentDocument.body.innerText ));
+    }
+
+})
 
 iniciarButton.addEventListener("click", function(){
     let threeDSMethodURL = '';
@@ -46,6 +68,37 @@ iniciarButton.addEventListener("click", function(){
     //TODO evaluar el response si está todo bien se ejecuta colocarlas en false?
 })
 
+/**
+ * ejecutará el challenge y lo enviará al iframe correspondiente
+ * @param protocolVersion
+ * @param acsURL
+ * @param creq
+ */
+function executeChallenge( { protocolVersion, acsURL, creq } ) {
+
+    challengeForm.action = acsURL;
+    challengeForm.method = 'post';
+
+    const creqData = document.createElement('input');
+
+    creqData.setAttribute('type', 'hidden');
+    creqData.setAttribute('name', 'creq');
+
+    creqData.setAttribute('value', creq);
+
+    challengeForm.appendChild(creqData);
+
+    console.log( challengeForm );
+
+    challengeForm.target = 'redsys_iframe_challenge';
+    challengeIframe.style.display = 'block';
+
+    stateTransaction.value = "debe realizar challenge"
+
+    challengeForm.submit();
+
+}
+
 function executeThreeDsMethod( { threeDSMethodURL, threeDSMethodData } ) {
 
 
@@ -64,7 +117,11 @@ function executeThreeDsMethod( { threeDSMethodURL, threeDSMethodData } ) {
     threeDsmethodForm.appendChild(dsMethodData);
 
     console.log(threeDsmethodForm, dsMethodData);
+    //threeDsmethodIframe.style.display = 'block';
+
     threeDsmethodForm.target = "3dsmethod";
+    stateTransaction.value = "tarjeta correcta evaluando riesgo operacion"
+
     threeDsmethodForm.submit();
 
 }

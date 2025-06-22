@@ -191,7 +191,6 @@ class HomeController extends AbstractController
     public function trheeDsMethodResponse( TransactionRepository $transactionRepository, string $order, Request $request )
     {
 
-        dd($request);
         //recupero el objeto para validarlo y continuar la transacción
 
         //$transaction = $transactionRepository->findByOrderIdAndNoPaid( $order, $threeDSServerTransID );
@@ -248,6 +247,7 @@ class HomeController extends AbstractController
         {
 
             return $this->json([
+                "ChallengeRequest"  => true,
                 "protocolVersion"   => $parameters["Ds_EMV3DS"]["protocolVersion"],
                 "acsURL"            => $parameters["Ds_EMV3DS"]["acsURL"],
                 "creq"              => $parameters["Ds_EMV3DS"]["creq"],
@@ -295,7 +295,7 @@ class HomeController extends AbstractController
     #[Route('/primer_trata_peticion/', name: 'primer_trata', methods: ['POST'])]
     public function firstTrataPeticion( Request $request )
     {
-        dd("primer trata", $request);
+        dd("primer trata", $request->getPayload()->get('cres'));
     }
 
 }

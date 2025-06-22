@@ -24,6 +24,10 @@
                 <label for="cardcvv" class="form-label">cvv</label>
                 <input type="tel" class="form-control" id="card_cvv" name="card">
             </div>
+            <div class="mb-3">
+                <label for="state_trans" class="form-label">estado transaccion</label>
+                <input type="text" class="form-control" id="state_trans" name="state_trans">
+            </div>
 
                 <input type="hidden" id="amount" name="transaction">
                 <input type="hidden" id="order" name="transaction">
@@ -33,11 +37,20 @@
         {#        {{ form(form) }}#}
     </div>
 
-    <iframe name="redsys_iframe" name="redsys_iframe_acs" src=""
-            id="redsys_iframe" target="_parent" referrerpolicy="origin"
+    <iframe name="redsys_iframe_challenge" name="redsys_iframe_acs" src=""
+            id="redsys_iframe_challenge" referrerpolicy="origin"
             sandbox="allow-same-origin allow-scripts allow-top-navigation allow-forms"
             height="95%" width="100%" style="border: none; display: none;"></iframe>
+        <div class="col">
 
+            <H1>challenge</H1>
+            <form id="challenge-form" action="" method="POST">
+                {#                    <input type="hidden" name="threeDSMethodData" value="">#}
+            </form>
+
+            <iframe id="3dsmethod-iframe" name="3dsmethod" style="display:none;"></iframe>
+
+        </div>
         <div class="col">
 
                 <H1>3DSMethod Init</H1>
