@@ -16,7 +16,8 @@ parameters:
         notificacion:
             ds: '%env(NOTIFICATION_DSMETHOD_URL)%'
             url_first_trata: '%env(NOTIFICATION_URL_PRIMER_TRATA)%'
-
+            challenge: '%env(AUTHENTICATION_CHALLENGE)%'
+    app.signature.version: '%env(SIGNATURE_VERSION)'
 #    app.fuc: '%env(FUC)%'
 #    app.terminal: '%env(TERMINAL)%'
 #    app.currency: '%env(CURRENCY)%'

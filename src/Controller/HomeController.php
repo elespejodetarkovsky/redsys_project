@@ -45,6 +45,7 @@ class HomeController extends AbstractController
             $card = $form->getData(); //Card::class
 
             //TODO esto hay que modificarlo agregar la carga de parámetros en un servicio?
+            //TODO elaborar mensajes
             if ( $card instanceof Card )
             {
 
@@ -57,7 +58,7 @@ class HomeController extends AbstractController
 
             } else
             {
-                //return $this->redirectToRoute('app_home');
+                //TODO throw
             }
 
 
@@ -259,6 +260,27 @@ class HomeController extends AbstractController
     }
 
 
+    private function challengeTrataPeticionMerchantParameters(  Transaction $transaction, string $cres )
+    {
+
+        $emv3DS = json_encode( [ "threeDSInfo" => "ChallengeResponse",
+            "protocolVersion" => $transaction->getEmv3DS()->getProtocolVersion(),
+            "cres" => $cres,
+        ], JSON_UNESCAPED_SLASHES );
+
+        $this->redsysService->setParameter("DS_MERCHANT_ORDER",$transaction->getTransOrder() );
+        $this->redsysService->setParameter("DS_MERCHANT_MERCHANTCODE", $this->getParameter('app')['fuc'] );
+        $this->redsysService->setParameter("DS_MERCHANT_TERMINAL",$this->getParameter('app')['terminal'] );
+        $this->redsysService->setParameter("DS_MERCHANT_TRANSACTIONTYPE",RedsysService::AUTHORIZATION );
+        $this->redsysService->setParameter("DS_MERCHANT_CURRENCY", $this->getParameter('app')['currency'] );
+        $this->redsysService->setParameter("DS_MERCHANT_PAN", $transaction->getCard()->getPan() );
+        $this->redsysService->setParameter("DS_MERCHANT_EXPIRYDATE", $transaction->getCard()->getExpDate() );
+        $this->redsysService->setParameter("DS_MERCHANT_AMOUNT",$transaction->getAmount() );
+        $this->redsysService->setParameter("DS_MERCHANT_CVV2", $transaction->getCard()->getCvv() );
+        $this->redsysService->setParameter("DS_MERCHANT_EMV3DS", $emv3DS );
+
+    }
+
     private function firstTrataPeticionMerchantParameters( Transaction $transaction, string $threeDSCompInd )
     {
 
@@ -274,7 +296,7 @@ class HomeController extends AbstractController
                                     "browserScreenWidth" => "1320",
                                     "browserTZ" => "52",
                                     "threeDSServerTransID" => $transaction->getEmv3DS()->getThreeDServerTransID(),
-                                    "notificationURL" => $this->getParameter('app')['notificacion']['url_first_trata'],
+                                    "notificationURL" => $this->getParameter('app')['notificacion']['challenge'].$transaction->getTransOrder(),
                                     "threeDSCompInd" => $threeDSCompInd,
         ], JSON_UNESCAPED_SLASHES );
 
@@ -292,10 +314,67 @@ class HomeController extends AbstractController
 
     }
 
-    #[Route('/primer_trata_peticion/', name: 'primer_trata', methods: ['POST'])]
-    public function firstTrataPeticion( Request $request )
+//    #[Route('/primer_trata_peticion/', name: 'primer_trata', methods: ['POST'])]
+//    public function firstTrataPeticion( Request $request )
+//    {
+//        dd("primer trata", $request->getPayload()->get('cres'));
+//    }
+
+    #[Route('/autentication_result/{order}', name: 'autentication_result', methods: ['POST'])]
+    public function autenticationResult( TransactionRepository $transactionRepository, string $order, Request $request )
     {
-        dd("primer trata", $request->getPayload()->get('cres'));
+
+
+        $transaction = $transactionRepository->findBy(['transOrder' => $order])[0];
+
+        $this->redsysService->cleanParameters();
+
+        /* ha sido exitosa la busqueda */
+        if ( $transaction instanceof Transaction )
+        {
+
+            $this->challengeTrataPeticionMerchantParameters( $transaction, $request->getPayload()->get('cres') );
+
+        } else
+        {
+
+            //TODO volver al home con el mensaje de error
+            throw new HttpException(500, 'no existe la operacion solicitada');
+        }
+
+        $dsSignatureVersion     = 'HMAC_SHA256_V1';
+
+        //diversificación de clave 3DES
+        //OPENSSL_RAW_DATA=1
+
+        $params = $this->redsysService->createMerchantParameters();
+
+        $signature = $this->redsysService->createMerchantSignature( $this->getParameter('app')['clave']['comercio'] );
+
+        $petition['Ds_SignatureVersion']        = $dsSignatureVersion;
+        $petition["Ds_MerchantParameters"]      = $params;
+        $petition["Ds_Signature"]               = $signature;
+
+        //dd('trata_peticion_3ds', $params);
+
+        $respuesta = json_decode( $this->fetchService->fetchTest( json_encode($petition)), true );
+
+        $parameters = json_decode( $this->redsysService->decodeMerchantParameters( $respuesta['Ds_MerchantParameters'] ), true);
+
+        //en este punto se resolverá el challenge
+        //00XX éxito
+        if ( str_starts_with( $parameters["Ds_Response"], "00")  )
+        {
+
+            return $this->json([ 'error' => false ], Response::HTTP_OK);
+
+        } else
+        {
+
+            return $this->json([ 'error' => $parameters["Ds_Response"] ], Response::HTTP_OK);
+
+        }
+
     }
 
 }

@@ -2,6 +2,7 @@
 
 namespace App\Controller;
 
+use App\Dto\TransactionDto;
 use App\Entity\Card;
 use App\Entity\Emv3DS;
 use App\Entity\Transaction;
@@ -9,12 +10,14 @@ use App\Form\ThreeDsMethodType;
 use App\Service\FetchService;
 use App\Service\RedsysService;
 use Doctrine\ORM\EntityManagerInterface;
+use HttpException;
 use Symfony\Bridge\Doctrine\Attribute\MapEntity;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\Form\Exception\AlreadySubmittedException;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpKernel\Attribute\MapRequestPayload;
 use Symfony\Component\Routing\Annotation\Route;
+use Symfony\Component\Serializer\SerializerInterface;
 
 
 class CardInformationController extends AbstractController
@@ -25,33 +28,35 @@ class CardInformationController extends AbstractController
     }
 
     #[Route('/card_information', name: 'card_information', methods: ['POST'])]
-    public function index( #[MapRequestPayload] Transaction $transaction )
+    public function cardInformation( #[MapRequestPayload] TransactionDto $transactionInput, SerializerInterface $serializer )
     {
 
-        $this->redsysService->setParameter("DS_MERCHANT_ORDER", $transaction->getTransOrder());
-        $this->redsysService->setParameter("DS_MERCHANT_MERCHANTCODE", $this->getParameter('app')['fuc'] );
-        $this->redsysService->setParameter("DS_MERCHANT_TERMINAL", $this->getParameter('app')['terminal'] );
-        $this->redsysService->setParameter("DS_MERCHANT_TRANSACTIONTYPE",RedsysService::AUTHORIZATION);
-        $this->redsysService->setParameter("DS_MERCHANT_PAN", $transaction->getCard()->getPan() );
-        $this->redsysService->setParameter("DS_MERCHANT_EXPIRYDATE", $transaction->getCard()->getExpDate() );
-        $this->redsysService->setParameter("DS_MERCHANT_CVV2", $transaction->getCard()->getCvv()  );
-        $this->redsysService->setParameter("DS_MERCHANT_CURRENCY", $this->getParameter('app')['currency'] );
-        $this->redsysService->setParameter("DS_MERCHANT_AMOUNT", $transaction->getAmount() );
-        $this->redsysService->setParameter("DS_MERCHANT_EMV3DS",'{"threeDSInfo": "CardData"}'); //se solicita información de la tarjeta enviada
-        $this->redsysService->setParameter("DS_MERCHANT_EXCEP_SCA", "Y"); //envío de excensiones de la tarjeta por si la necesitamos
 
-        $dsSignatureVersion     = 'HMAC_SHA256_V1';
+        $transaction = $serializer->serialize($transactionInput, 'json');
 
-        //diversificación de clave 3DES
-        //OPENSSL_RAW_DATA=1
+        if ( $transaction instanceof Transaction )
+        {
 
-        $params = $this->redsysService->createMerchantParameters();
+            //realiza la petición para obtener datos de tarjeta
+            $this->redsysService->setParameter("DS_MERCHANT_ORDER", $transactionInput->getTransOrder());
+            $this->redsysService->setParameter("DS_MERCHANT_MERCHANTCODE", $this->getParameter('app')['fuc'] );
+            $this->redsysService->setParameter("DS_MERCHANT_TERMINAL", $this->getParameter('app')['terminal'] );
+            $this->redsysService->setParameter("DS_MERCHANT_TRANSACTIONTYPE",RedsysService::AUTHORIZATION);
+            $this->redsysService->setParameter("DS_MERCHANT_PAN", $transactionInput->getCard()->getPan() );
+            $this->redsysService->setParameter("DS_MERCHANT_EXPIRYDATE", $transactionInput->getCard()->getExpDate() );
+            $this->redsysService->setParameter("DS_MERCHANT_CVV2", $transactionInput->getCard()->getCvv() );
+            $this->redsysService->setParameter("DS_MERCHANT_CURRENCY", $this->getParameter('app')['currency'] );
+            $this->redsysService->setParameter("DS_MERCHANT_AMOUNT", $transactionInput->getAmount() );
+            $this->redsysService->setParameter("DS_MERCHANT_EMV3DS",'{"threeDSInfo": "CardData"}'); //se solicita información de la tarjeta enviada
+            $this->redsysService->setParameter("DS_MERCHANT_EXCEP_SCA", "Y"); //envío de excensiones de la tarjeta por si la necesitamos
 
-        $signature = $this->redsysService->createMerchantSignature( $this->getParameter('app')['clave']['comercio'] );
+        } else
+            throw new HttpException( 500, "ha habido un problema al serializar la transacción" );
 
-        $petition['Ds_SignatureVersion']        = $dsSignatureVersion;
-        $petition["Ds_MerchantParameters"]      = $params;
-        $petition["Ds_Signature"]               = $signature;
+
+        $petition['Ds_SignatureVersion']        = $this->getParameter('app.signature.version');
+        $petition["Ds_MerchantParameters"]      = $this->redsysService->createMerchantParameters(); //params
+        $petition["Ds_Signature"]               = $this->redsysService->createMerchantSignature( $this->getParameter('app')['clave']['comercio'] ); //signature
 
         $respuesta = json_decode( $this->fetchService->fetch( json_encode($petition), true) , true );
 
@@ -90,20 +95,6 @@ class CardInformationController extends AbstractController
             $this->entityManager->persist( $transaction );
 
             $this->entityManager->flush();
-
-            //hago la consulta con el formulario
-//            $form = $this->createForm( ThreeDsMethodType::class, ['action' => $parameters['Ds_EMV3DS']['threeDSMethodURL']]);
-//
-//            try {
-//
-//                $form->submit(['threeDSMethodData' => $threeDS->getThreeDSMethodData( $this->getParameter('app')['notificacion']['ds'].$transaction->getTransOrder() )]);
-//
-//            } catch ( \Exception $e )
-//            {
-//                return $this->json(['threeDSMethodSubmit' => false]);
-//            }
-//
-//            return $this->json(['threeDSMethodSubmit' => true]);
 
             return $this->json([
                 'threeDSMethodURL'      => $parameters['Ds_EMV3DS']['threeDSMethodURL'],

@@ -29,12 +29,33 @@ threeDsmethodIframe.addEventListener("load", function(e) {
             stateTransaction.value = "se necesita realizar challenge"
 
             executeChallenge( challenge );
-
             //se carga form y ejecuta en el iframe
         }
 
         //console.log(threeDsmethodIframe, JSON.parse( threeDsmethodIframe.contentDocument.body.innerText ));
     }
+
+})
+
+challengeIframe.addEventListener("load", function(e) {
+
+
+    console.log( challengeIframe.contentDocument );
+
+     if ( !(challengeIframe.contentDocument === null) )
+     {
+         const result = JSON.parse( challengeIframe.contentDocument.body.innerText );
+
+         console.log( result.error );
+         if ( !result.error )
+         {
+             stateTransaction.value = "se ha realizado el pago";
+         } else
+         {
+             stateTransaction.value = "se ha producido un error ... colocar error";
+         }
+
+     }
 
 })
 
